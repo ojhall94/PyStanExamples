@@ -10,12 +10,11 @@ import ClosePlots as cp
 if __name__ == "__main__":
 
     '''Build the data'''
-    npts = 500
+    npts = 5000
     true_sigma_rc = .2
     true_M_rc = -1.61
     true_sigma_out = 1.
     true_fout = .3
-
 
     RC = np.random.randn(int(npts*(1-true_fout))) * true_sigma_rc + true_M_rc
     out = np.random.randn(int(npts*(true_fout))) * true_sigma_out + true_M_rc
@@ -23,10 +22,33 @@ if __name__ == "__main__":
     d_Mi = np.append(RC, out)
     # d_Mi = RC
 
-    y = np.random.uniform(size=d_Mi.shape)
-    s = np.random.uniform(size=d_Mi.shape) *.1
+    '''Now lets build all the other components, namely distance.'''
+    d_m0 = np.random.randn(len(d_Mi)) * 1. + 12.5     #Build some distance moduli
+    d_ri = 10 ** (d_m0/5 + 1)                       #Build some distances
+    d_wi = 1000/d_ri                                #Build some parallaxes IN MAS
 
-    plt.errorbar(d_Mi, y, xerr = s,fmt='o')
+    '''Av takes a little more care'''
+    avleft = np.random.randn(int(len(d_Mi)*10)) * 0.04 + 0.2    #Building an assymmetric gaussian dist
+    avright = np.random.randn(int(len(d_Mi)*10)) * 0.3 + 0.2    #Note: these have too many points, needed for asymmetry weighting
+    d_Av = np.append(avleft[avleft<=0.2][0:800],avright[avright>0.2][0:4200])   #Combine the two components
+    plt.show()
+
+    '''Finally put all the pieces together for mi'''
+    d_Aks = 0.306 * d_Av #Yuan, Liu & Xiang 2013
+    d_mi = d_Mi + 5*np.log10(d_ri) - 5 + d_Aks     #Build apparent mags without reddening
+
+    '''Now lets build the errors'''
+    e_wi = np.random.randn(len(d_Mi))*0.1 + (0.18*d_wi)   #TGAS error in mas
+    e_mi = np.ones_like(d_mi) * 0.02       #Magnitude error on Ks
+
+
+    plt.scatter(d_Mi, d_mi, s=3, c=d_Aks)
+    plt.colorbar()
+    # plt.errorbar(d_Mi, d_mi, xerr = s,fmt='o')
+    plt.show()
+
+    plt.errorbar(d_wi,d_mi, xerr=e_wi, yerr=e_mi,fmt=",k",alpha=.1, ms=0, capsize=0, lw=1, zorder=999)
+    plt.scatter(d_wi,d_mi,s=2,zorder=1001)
     plt.show()
 
     '''Build the model'''
